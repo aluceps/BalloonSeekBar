@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -25,9 +26,10 @@ class BalloonSeekBar @JvmOverloads constructor(
     private var colorBackground = DEFAULT_BACKGROUND
     private var colorForeground = DEFAULT_FOREGROUND
     private var backgroundStrokeWidth = DEFAULT_BACKGROUND_STROKE_WIDTH
-    private val foregroundStrokeWidth get() = backgroundStrokeWidth * FOREGROUND_BIAS
-    private val backgroundRadius get() = backgroundStrokeWidth / 2
-    private val foregroundRadius get() = foregroundStrokeWidth / 2
+    private val foregroundStrokeWidth by lazy { backgroundStrokeWidth * FOREGROUND_BIAS }
+    private val backgroundRadius by lazy { backgroundStrokeWidth / 2 }
+    private val foregroundRadius by lazy { foregroundStrokeWidth / 2 }
+    private val thumbRadius = DEFAULT_THUMB_RADIUS
 
     init {
         context?.obtainStyledAttributes(attrs, R.styleable.BalloonSeekBar, defStyleAttr, 0)?.apply {
@@ -65,22 +67,36 @@ class BalloonSeekBar @JvmOverloads constructor(
         }
     }
 
+    private val paintThumb by lazy {
+        Paint().apply {
+            isAntiAlias = true
+            color = Color.WHITE
+            style = Paint.Style.FILL
+        }
+    }
+
+    private val paintThumbBorder by lazy {
+        Paint().apply {
+            isAntiAlias = true
+            color = Color.argb(20, 0, 0, 0)
+            style = Paint.Style.STROKE
+            strokeWidth = 4f
+        }
+    }
+
     // View のサイズをもっておくためのもの
     private val contentSize = BalloonView(0, 0, 0, 0)
-    private val contentDiff = foregroundStrokeWidth - backgroundStrokeWidth
+    private val contentDiff by lazy { foregroundStrokeWidth - backgroundStrokeWidth }
 
     // 前景よりも背景のほうが細いので縦位置を前景の中心に寄せる
-    private val rectBackground by lazy {
-        contentSize.let { v -> RectF(v.leftF, v.topF + contentDiff, v.rightF, v.topF + backgroundStrokeWidth) }
-    }
-
+    private val rectBackground by lazy { contentSize.let { v -> RectF(v.leftF, v.topF + contentDiff, v.rightF, v.topF + backgroundStrokeWidth) } }
     // はじめは SeekBar の値はゼロなので右端は開始点に設定する
-    private val rectForeground by lazy {
-        contentSize.let { v -> RectF(v.leftF, v.topF, v.leftF, v.topF + foregroundStrokeWidth) }
-    }
+    private val rectForeground by lazy { contentSize.let { v -> RectF(v.leftF, v.topF, v.leftF, v.topF + foregroundStrokeWidth) } }
 
     // 初期値はゼロなので View の左端に設定する
     private var currentX = paddingLeft.toFloat()
+    private val thumbY by lazy { rectBackground.top + backgroundStrokeWidth / 2 }
+
     private val currentProgress get() = contentSize.let { (currentX - it.leftF) / it.widthF }
     private val currentValue get() = valueMax * currentProgress
 
@@ -101,12 +117,19 @@ class BalloonSeekBar @JvmOverloads constructor(
         canvas?.let { c ->
             drawBackgroundStroke(c)
             drawForegroundStroke(c)
+            drawThumb(c)
         }
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         when (event?.action) {
-            MotionEvent.ACTION_DOWN -> moveProgress(event.x)
+            MotionEvent.ACTION_DOWN -> if (rectBackground.top <= event.y && rectBackground.bottom >= event.y) {
+                moveProgress(event.x)
+            }
             MotionEvent.ACTION_MOVE -> moveProgress(event.x)
             MotionEvent.ACTION_UP -> Unit
             MotionEvent.ACTION_CANCEL -> Unit
@@ -126,22 +149,27 @@ class BalloonSeekBar @JvmOverloads constructor(
         }
     }
 
-    private fun moveProgress(value: Float) {
+    private fun drawThumb(canvas: Canvas) {
+        canvas.drawCircle(currentX, thumbY, thumbRadius, paintThumb)
+        canvas.drawCircle(currentX, thumbY, thumbRadius, paintThumbBorder)
+    }
+
+    private fun moveProgress(x: Float) {
         when {
             // 範囲外
-            contentSize.left > value -> {
+            contentSize.left > x -> {
                 currentX = contentSize.leftF
                 listener?.progress(currentProgress)
                 listener?.progress(truncate(currentValue).toInt())
             }
-            contentSize.right < value -> {
+            contentSize.right < x -> {
                 currentX = contentSize.rightF
                 listener?.progress(currentProgress)
                 listener?.progress(truncate(currentValue).toInt())
             }
             // 範囲内
-            contentSize.left <= value && contentSize.right >= value -> {
-                currentX = value
+            contentSize.left <= x && contentSize.right >= x -> {
+                currentX = x
                 listener?.progress(currentProgress)
                 listener?.progress(truncate(currentValue).toInt())
             }
@@ -167,6 +195,7 @@ class BalloonSeekBar @JvmOverloads constructor(
         private const val DEFAULT_BACKGROUND = Color.GRAY
         private const val DEFAULT_FOREGROUND = Color.GREEN
         private const val DEFAULT_BACKGROUND_STROKE_WIDTH = 0f
+        private const val DEFAULT_THUMB_RADIUS = 24f
         private const val FOREGROUND_BIAS = 1.1f
     }
 }

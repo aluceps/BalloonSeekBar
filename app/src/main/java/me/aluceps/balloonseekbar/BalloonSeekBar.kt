@@ -1,9 +1,11 @@
 package me.aluceps.balloonseekbar
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
@@ -30,6 +32,7 @@ class BalloonSeekBar @JvmOverloads constructor(
     private val backgroundRadius by lazy { backgroundStrokeWidth / 2 }
     private val foregroundRadius by lazy { foregroundStrokeWidth / 2 }
     private val thumbRadius = DEFAULT_THUMB_RADIUS
+    private var resourceThumb: Drawable? = null
 
     init {
         context?.obtainStyledAttributes(attrs, R.styleable.BalloonSeekBar, defStyleAttr, 0)?.apply {
@@ -38,6 +41,7 @@ class BalloonSeekBar @JvmOverloads constructor(
             getInt(R.styleable.BalloonSeekBar_balloon_seekbar_background, DEFAULT_BACKGROUND).let { colorBackground = it }
             getInt(R.styleable.BalloonSeekBar_balloon_seekbar_foreground, DEFAULT_FOREGROUND).let { colorForeground = it }
             getDimension(R.styleable.BalloonSeekBar_balloon_seekbar_stroke_width, DEFAULT_BACKGROUND_STROKE_WIDTH).let { backgroundStrokeWidth = it }
+            getDrawable(R.styleable.BalloonSeekBar_balloon_seekbar_thumb)?.let { resourceThumb = it }
         }?.recycle()
 
         Timer().apply {
@@ -95,10 +99,11 @@ class BalloonSeekBar @JvmOverloads constructor(
 
     // 初期値はゼロなので View の左端に設定する
     private var currentX = paddingLeft.toFloat()
-    private val thumbY by lazy { rectBackground.top + backgroundStrokeWidth / 2 }
-
     private val currentProgress get() = contentSize.let { (currentX - it.leftF) / it.widthF }
     private val currentValue get() = valueMax * currentProgress
+
+    private val thumbY by lazy { rectBackground.top + backgroundStrokeWidth / 2 }
+    private val thumbBitmap by lazy { resourceThumb?.createBitmap() }
 
     private var listener: OnChangeListener? = null
 
@@ -150,8 +155,16 @@ class BalloonSeekBar @JvmOverloads constructor(
     }
 
     private fun drawThumb(canvas: Canvas) {
-        canvas.drawCircle(currentX, thumbY, thumbRadius, paintThumb)
-        canvas.drawCircle(currentX, thumbY, thumbRadius, paintThumbBorder)
+        if (thumbBitmap == null) {
+            canvas.drawCircle(currentX, thumbY, thumbRadius, paintThumb)
+            canvas.drawCircle(currentX, thumbY, thumbRadius, paintThumbBorder)
+        } else {
+            thumbBitmap?.let {
+                val src = Rect(0, 0, it.width, it.height)
+                val dest = Rect((currentX - it.width).toInt(), (thumbY - it.height).toInt(), (currentX + it.width).toInt(), (thumbY + it.height).toInt())
+                canvas.drawBitmap(it, src, dest, null)
+            }
+        }
     }
 
     private fun moveProgress(x: Float) {
@@ -179,6 +192,14 @@ class BalloonSeekBar @JvmOverloads constructor(
     fun setOnChangeListenr(listener: OnChangeListener) {
         this.listener = listener
     }
+
+    private fun Drawable.createBitmap() =
+            Bitmap.createBitmap(intrinsicWidth, intrinsicHeight, Bitmap.Config.ARGB_8888).also {
+                Canvas(it).let { c ->
+                    setBounds(0, 0, c.width, c.height)
+                    draw(c)
+                }
+            }
 
     data class BalloonView(var top: Int, var left: Int, var bottom: Int, var right: Int) {
         val topF get() = top.toFloat()

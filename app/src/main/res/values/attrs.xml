@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="BalloonSeekBar">
+        <attr name="balloon_seekbar_max" format="integer|reference" />
+        <attr name="balloon_seekbar_value" format="integer|reference" />
+        <attr name="balloon_seekbar_background" format="color|reference" />
+        <attr name="balloon_seekbar_foreground" format="color|reference" />
+        <attr name="balloon_seekbar_stroke_width" format="dimension|reference" />
+    </declare-styleable>
+</resources>

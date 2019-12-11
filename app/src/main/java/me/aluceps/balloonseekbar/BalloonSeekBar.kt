@@ -9,6 +9,12 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import java.util.*
+import kotlin.math.truncate
+
+interface OnChangeListener {
+    fun progress(percentage: Float)
+    fun progress(value: Int)
+}
 
 class BalloonSeekBar @JvmOverloads constructor(
         context: Context?, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -76,6 +82,10 @@ class BalloonSeekBar @JvmOverloads constructor(
 
     // 初期値はゼロなので View の左端に設定する
     private var currentX = paddingLeft.toFloat()
+    private val currentProgress get() = contentSize.toFloat().let { (currentX - it.left) / it.width }
+    private val currentValue get() = valueMax * currentProgress
+
+    private var listener: OnChangeListener? = null
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
@@ -122,15 +132,25 @@ class BalloonSeekBar @JvmOverloads constructor(
             // 範囲外
             contentSize.left > value -> {
                 currentX = contentSize.toFloat().left
+                listener?.progress(currentProgress)
+                listener?.progress(truncate(currentValue).toInt())
             }
             contentSize.right < value -> {
                 currentX = contentSize.toFloat().right
+                listener?.progress(currentProgress)
+                listener?.progress(truncate(currentValue).toInt())
             }
             // 範囲内
             contentSize.left <= value && contentSize.right >= value -> {
                 currentX = value
+                listener?.progress(currentProgress)
+                listener?.progress(truncate(currentValue).toInt())
             }
         }
+    }
+
+    fun setOnChangeListenr(listener: OnChangeListener) {
+        this.listener = listener
     }
 
     data class BalloonView(var top: Int, var left: Int, var bottom: Int, var right: Int) {

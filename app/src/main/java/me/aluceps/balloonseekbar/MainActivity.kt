@@ -1,6 +1,7 @@
 package me.aluceps.balloonseekbar
 
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import me.aluceps.balloonseekbar.databinding.ActivityMainBinding
@@ -13,6 +14,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding
+        binding.seekBar.setOnChangeListenr(object : OnChangeListener {
+            override fun progress(percentage: Float) {
+                Log.d("###", "percentage: $percentage")
+            }
+
+            override fun progress(value: Int) {
+                Log.d("###", "value: $value")
+            }
+        })
     }
 }

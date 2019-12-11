@@ -36,9 +36,7 @@ class BalloonSeekBar @JvmOverloads constructor(
             getInt(R.styleable.BalloonSeekBar_balloon_seekbar_background, DEFAULT_BACKGROUND).let { colorBackground = it }
             getInt(R.styleable.BalloonSeekBar_balloon_seekbar_foreground, DEFAULT_FOREGROUND).let { colorForeground = it }
             getDimension(R.styleable.BalloonSeekBar_balloon_seekbar_stroke_width, DEFAULT_BACKGROUND_STROKE_WIDTH).let { backgroundStrokeWidth = it }
-        }?.let {
-            it.recycle()
-        }
+        }?.recycle()
 
         Timer().apply {
             schedule(object : TimerTask() {
@@ -67,22 +65,23 @@ class BalloonSeekBar @JvmOverloads constructor(
         }
     }
 
+    // View のサイズをもっておくためのもの
     private val contentSize = BalloonView(0, 0, 0, 0)
     private val contentDiff = foregroundStrokeWidth - backgroundStrokeWidth
 
     // 前景よりも背景のほうが細いので縦位置を前景の中心に寄せる
     private val rectBackground by lazy {
-        contentSize.toFloat().let { v -> RectF(v.left, v.top + contentDiff, v.right, v.top + backgroundStrokeWidth) }
+        contentSize.let { v -> RectF(v.leftF, v.topF + contentDiff, v.rightF, v.topF + backgroundStrokeWidth) }
     }
 
     // はじめは SeekBar の値はゼロなので右端は開始点に設定する
     private val rectForeground by lazy {
-        contentSize.toFloat().let { v -> RectF(v.left, v.top, v.left, v.top + foregroundStrokeWidth) }
+        contentSize.let { v -> RectF(v.leftF, v.topF, v.leftF, v.topF + foregroundStrokeWidth) }
     }
 
     // 初期値はゼロなので View の左端に設定する
     private var currentX = paddingLeft.toFloat()
-    private val currentProgress get() = contentSize.toFloat().let { (currentX - it.left) / it.width }
+    private val currentProgress get() = contentSize.let { (currentX - it.leftF) / it.widthF }
     private val currentValue get() = valueMax * currentProgress
 
     private var listener: OnChangeListener? = null
@@ -131,12 +130,12 @@ class BalloonSeekBar @JvmOverloads constructor(
         when {
             // 範囲外
             contentSize.left > value -> {
-                currentX = contentSize.toFloat().left
+                currentX = contentSize.leftF
                 listener?.progress(currentProgress)
                 listener?.progress(truncate(currentValue).toInt())
             }
             contentSize.right < value -> {
-                currentX = contentSize.toFloat().right
+                currentX = contentSize.rightF
                 listener?.progress(currentProgress)
                 listener?.progress(truncate(currentValue).toInt())
             }
@@ -154,14 +153,12 @@ class BalloonSeekBar @JvmOverloads constructor(
     }
 
     data class BalloonView(var top: Int, var left: Int, var bottom: Int, var right: Int) {
-        val width = right - left
-        val height = bottom - top
-        fun toFloat() = BalloonViewF(top.toFloat(), left.toFloat(), bottom.toFloat(), right.toFloat())
-    }
-
-    data class BalloonViewF(var top: Float, var left: Float, var bottom: Float, var right: Float) {
-        val width = right - left
-        val height = bottom - top
+        val topF get() = top.toFloat()
+        val leftF get() = left.toFloat()
+        val bottomF get() = bottom.toFloat()
+        val rightF get() = right.toFloat()
+        val widthF get() = rightF - leftF
+        val heightF get() = bottomF - topF
     }
 
     companion object {

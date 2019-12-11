@@ -8,5 +8,7 @@
         <attr name="balloon_seekbar_stroke_width" format="dimension|reference" />
         <attr name="balloon_seekbar_thumb" format="reference" />
         <attr name="balloon_seekbar_thumb_scale" format="float|reference" />
+        <attr name="balloon_seekbar_text_size" format="dimension|reference" />
+        <attr name="balloon_seekbar_text_color" format="color|reference" />
     </declare-styleable>
 </resources>

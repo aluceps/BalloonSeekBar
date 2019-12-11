@@ -7,11 +7,13 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import java.util.*
+import kotlin.math.abs
 import kotlin.math.truncate
 
 interface OnChangeListener {
@@ -31,9 +33,13 @@ class BalloonSeekBar @JvmOverloads constructor(
     private val foregroundStrokeWidth by lazy { backgroundStrokeWidth * FOREGROUND_BIAS }
     private val backgroundRadius by lazy { backgroundStrokeWidth / 2 }
     private val foregroundRadius by lazy { foregroundStrokeWidth / 2 }
+
     private val thumbRadius = DEFAULT_THUMB_RADIUS
     private var resourceThumb: Drawable? = null
     private var resourceThumbScale = DEFAULT_THUMB_SCALE
+
+    private var balloonTextSize = DEFAULT_TEXT_SIZE
+    private var balloonTextColor = DEFAULT_TEXT_COLOR
 
     init {
         context?.obtainStyledAttributes(attrs, R.styleable.BalloonSeekBar, defStyleAttr, 0)?.apply {
@@ -44,6 +50,8 @@ class BalloonSeekBar @JvmOverloads constructor(
             getDimension(R.styleable.BalloonSeekBar_balloon_seekbar_stroke_width, DEFAULT_BACKGROUND_STROKE_WIDTH).let { backgroundStrokeWidth = it }
             getDrawable(R.styleable.BalloonSeekBar_balloon_seekbar_thumb)?.let { resourceThumb = it }
             getFloat(R.styleable.BalloonSeekBar_balloon_seekbar_thumb_scale, DEFAULT_THUMB_SCALE).let { resourceThumbScale = it }
+            getDimension(R.styleable.BalloonSeekBar_balloon_seekbar_text_size, DEFAULT_TEXT_SIZE).let { balloonTextSize = it }
+            getInt(R.styleable.BalloonSeekBar_balloon_seekbar_text_color, DEFAULT_TEXT_COLOR).let { balloonTextColor = it }
         }?.recycle()
 
         Timer().apply {
@@ -90,6 +98,16 @@ class BalloonSeekBar @JvmOverloads constructor(
         }
     }
 
+    private val paintText by lazy {
+        Paint().apply {
+            isAntiAlias = true
+            color = balloonTextColor
+            textSize = balloonTextSize
+            textAlign = Paint.Align.LEFT
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+    }
+
     // View のサイズをもっておくためのもの
     private val contentSize = BalloonView(0, 0, 0, 0)
     private val contentDiff by lazy { foregroundStrokeWidth - backgroundStrokeWidth }
@@ -110,6 +128,7 @@ class BalloonSeekBar @JvmOverloads constructor(
     private var listener: OnChangeListener? = null
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        // レイアウト時のサイズを初期化する
         setMeasuredDimension(measureWidth(widthMeasureSpec), measureHeight(heightMeasureSpec))
         contentSize.apply {
             top = paddingTop
@@ -125,6 +144,7 @@ class BalloonSeekBar @JvmOverloads constructor(
             drawBackgroundStroke(c)
             drawForegroundStroke(c)
             drawThumb(c)
+            drawBalloon(c)
         }
     }
 
@@ -184,6 +204,13 @@ class BalloonSeekBar @JvmOverloads constructor(
         }
     }
 
+    private fun drawBalloon(canvas: Canvas) {
+        val text = "%d".format(currentValue.toInt())
+        val textWidth = paintText.measureText(text)
+        val x = currentX - textWidth / 2
+        canvas.drawText(text, abs(x), thumbY, paintText)
+    }
+
     private fun moveProgress(x: Float) {
         when {
             // 範囲外
@@ -237,6 +264,8 @@ class BalloonSeekBar @JvmOverloads constructor(
         private const val DEFAULT_BACKGROUND_STROKE_WIDTH = 0f
         private const val DEFAULT_THUMB_RADIUS = 24f
         private const val DEFAULT_THUMB_SCALE = 1f
+        private const val DEFAULT_TEXT_SIZE = 12f
+        private const val DEFAULT_TEXT_COLOR = Color.WHITE
         private const val FOREGROUND_BIAS = 1.1f
     }
 }

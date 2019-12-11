@@ -33,6 +33,7 @@ class BalloonSeekBar @JvmOverloads constructor(
     private val foregroundRadius by lazy { foregroundStrokeWidth / 2 }
     private val thumbRadius = DEFAULT_THUMB_RADIUS
     private var resourceThumb: Drawable? = null
+    private var resourceThumbScale = DEFAULT_THUMB_SCALE
 
     init {
         context?.obtainStyledAttributes(attrs, R.styleable.BalloonSeekBar, defStyleAttr, 0)?.apply {
@@ -42,6 +43,7 @@ class BalloonSeekBar @JvmOverloads constructor(
             getInt(R.styleable.BalloonSeekBar_balloon_seekbar_foreground, DEFAULT_FOREGROUND).let { colorForeground = it }
             getDimension(R.styleable.BalloonSeekBar_balloon_seekbar_stroke_width, DEFAULT_BACKGROUND_STROKE_WIDTH).let { backgroundStrokeWidth = it }
             getDrawable(R.styleable.BalloonSeekBar_balloon_seekbar_thumb)?.let { resourceThumb = it }
+            getFloat(R.styleable.BalloonSeekBar_balloon_seekbar_thumb_scale, DEFAULT_THUMB_SCALE).let { resourceThumbScale = it }
         }?.recycle()
 
         Timer().apply {
@@ -103,12 +105,12 @@ class BalloonSeekBar @JvmOverloads constructor(
     private val currentValue get() = valueMax * currentProgress
 
     private val thumbY by lazy { rectBackground.top + backgroundStrokeWidth / 2 }
-    private val thumbBitmap by lazy { resourceThumb?.createBitmap() }
+    private val thumbBitmap by lazy { resourceThumb?.createBitmap(resourceThumbScale) }
 
     private var listener: OnChangeListener? = null
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        setMeasuredDimension(measureWidth(widthMeasureSpec), measureHeight(heightMeasureSpec))
         contentSize.apply {
             top = paddingTop
             left = paddingLeft
@@ -128,6 +130,9 @@ class BalloonSeekBar @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        if (thumbBitmap != null && thumbBitmap?.isRecycled == false) {
+            thumbBitmap?.recycle()
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -140,6 +145,18 @@ class BalloonSeekBar @JvmOverloads constructor(
             MotionEvent.ACTION_CANCEL -> Unit
         }
         return true
+    }
+
+    private fun measureWidth(measureSpec: Int): Int {
+        var size = paddingStart + paddingEnd
+        size += width
+        return resolveSizeAndState(size, measureSpec, 0)
+    }
+
+    private fun measureHeight(measureSpec: Int): Int {
+        var size = paddingTop + paddingBottom
+        size += height + truncate(backgroundStrokeWidth).toInt()
+        return resolveSizeAndState(size, measureSpec, 0)
     }
 
     private fun drawBackgroundStroke(canvas: Canvas) {
@@ -159,10 +176,10 @@ class BalloonSeekBar @JvmOverloads constructor(
             canvas.drawCircle(currentX, thumbY, thumbRadius, paintThumb)
             canvas.drawCircle(currentX, thumbY, thumbRadius, paintThumbBorder)
         } else {
-            thumbBitmap?.let {
-                val src = Rect(0, 0, it.width, it.height)
-                val dest = Rect((currentX - it.width).toInt(), (thumbY - it.height).toInt(), (currentX + it.width).toInt(), (thumbY + it.height).toInt())
-                canvas.drawBitmap(it, src, dest, null)
+            thumbBitmap?.let { b ->
+                val src = Rect(0, 0, b.width, b.height)
+                val dest = Rect((currentX - b.width).toInt(), (thumbY - b.height).toInt(), (currentX + b.width).toInt(), (thumbY + b.height).toInt())
+                canvas.drawBitmap(b, src, dest, null)
             }
         }
     }
@@ -193,8 +210,8 @@ class BalloonSeekBar @JvmOverloads constructor(
         this.listener = listener
     }
 
-    private fun Drawable.createBitmap() =
-            Bitmap.createBitmap(intrinsicWidth, intrinsicHeight, Bitmap.Config.ARGB_8888).also {
+    private fun Drawable.createBitmap(scale: Float) =
+            Bitmap.createBitmap((intrinsicWidth * scale).toInt(), (intrinsicHeight * scale).toInt(), Bitmap.Config.ARGB_8888).also {
                 Canvas(it).let { c ->
                     setBounds(0, 0, c.width, c.height)
                     draw(c)
@@ -208,6 +225,8 @@ class BalloonSeekBar @JvmOverloads constructor(
         val rightF get() = right.toFloat()
         val widthF get() = rightF - leftF
         val heightF get() = bottomF - topF
+        val width get() = right - left
+        val height get() = bottom - top
     }
 
     companion object {
@@ -217,6 +236,7 @@ class BalloonSeekBar @JvmOverloads constructor(
         private const val DEFAULT_FOREGROUND = Color.GREEN
         private const val DEFAULT_BACKGROUND_STROKE_WIDTH = 0f
         private const val DEFAULT_THUMB_RADIUS = 24f
+        private const val DEFAULT_THUMB_SCALE = 1f
         private const val FOREGROUND_BIAS = 1.1f
     }
 }

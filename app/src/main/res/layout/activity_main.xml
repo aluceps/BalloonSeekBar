@@ -21,6 +21,7 @@
             app:balloon_seekbar_max="100"
             app:balloon_seekbar_stroke_width="8dp"
             app:balloon_seekbar_thumb="@drawable/ic_thumb"
+            app:balloon_seekbar_thumb_scale="0.4"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"

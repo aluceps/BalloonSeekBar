@@ -7,5 +7,6 @@
         <attr name="balloon_seekbar_foreground" format="color|reference" />
         <attr name="balloon_seekbar_stroke_width" format="dimension|reference" />
         <attr name="balloon_seekbar_thumb" format="reference" />
+        <attr name="balloon_seekbar_thumb_scale" format="float|reference" />
     </declare-styleable>
 </resources>

@@ -12,6 +12,7 @@ import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import androidx.databinding.BindingAdapter
 import java.util.*
 import kotlin.math.round
 import kotlin.math.truncate
@@ -304,6 +305,10 @@ class BalloonSeekBar @JvmOverloads constructor(
         this.listener = listener
     }
 
+    fun setMaxValue(value: Int) {
+        valueMax = value
+    }
+
     private fun Drawable.createBitmap(scale: Float) =
             Bitmap.createBitmap((intrinsicWidth * scale).toInt(), (intrinsicHeight * scale).toInt(), Bitmap.Config.ARGB_8888).also {
                 Canvas(it).let { c ->
@@ -336,4 +341,10 @@ class BalloonSeekBar @JvmOverloads constructor(
         private const val DEFAULT_TEXT_COLOR = Color.WHITE
         private const val FOREGROUND_BIAS = 1.1f
     }
+}
+
+@BindingAdapter("balloon_seekbar_max")
+fun BalloonSeekBar.setMaxValue(value: Int?) {
+    if (value == null) return
+    setMaxValue(value)
 }

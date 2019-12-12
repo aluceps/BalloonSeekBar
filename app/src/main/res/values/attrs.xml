@@ -10,5 +10,7 @@
         <attr name="balloon_seekbar_thumb_scale" format="float|reference" />
         <attr name="balloon_seekbar_text_size" format="dimension|reference" />
         <attr name="balloon_seekbar_text_color" format="color|reference" />
+        <attr name="balloon_seekbar_balloon" format="reference" />
+        <attr name="balloon_seekbar_balloon_scale" format="float|reference" />
     </declare-styleable>
 </resources>

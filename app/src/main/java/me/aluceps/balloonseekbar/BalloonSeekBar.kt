@@ -39,14 +39,16 @@ class BalloonSeekBar @JvmOverloads constructor(
     private val thumbRadius = DEFAULT_THUMB_RADIUS
     private val thumbBorderWidth = DEFAULT_THUMB_BORDER_WIDTH
     private var resourceThumb: Drawable? = null
-    private var resourceThumbScale = DEFAULT_THUMB_SCALE
+    private var resourceThumbScale = DEFAULT_RESOURCE_SCALE
 
     // 吹き出しの設定値
     private var balloonTextSize = DEFAULT_TEXT_SIZE
     private var balloonTextColor = DEFAULT_TEXT_COLOR
+    private val balloonHeight by lazy { valueTextSizeF * 1.5f }
     private val valueTextSize by lazy { balloonTextSize.toInt() }
     private val valueTextSizeF by lazy { balloonTextSize }
-    private val baloonHeight by lazy { valueTextSizeF * 1.5f }
+    private var resourceBalloon: Drawable? = null
+    private var resourceBalloonScale = DEFAULT_RESOURCE_SCALE
 
     init {
         context?.obtainStyledAttributes(attrs, R.styleable.BalloonSeekBar, defStyleAttr, 0)?.apply {
@@ -56,9 +58,11 @@ class BalloonSeekBar @JvmOverloads constructor(
             getInt(R.styleable.BalloonSeekBar_balloon_seekbar_foreground, DEFAULT_FOREGROUND).let { colorForeground = it }
             getDimension(R.styleable.BalloonSeekBar_balloon_seekbar_stroke_width, DEFAULT_BACKGROUND_STROKE_WIDTH).let { backgroundStrokeWidth = it }
             getDrawable(R.styleable.BalloonSeekBar_balloon_seekbar_thumb)?.let { resourceThumb = it }
-            getFloat(R.styleable.BalloonSeekBar_balloon_seekbar_thumb_scale, DEFAULT_THUMB_SCALE).let { resourceThumbScale = it }
+            getFloat(R.styleable.BalloonSeekBar_balloon_seekbar_thumb_scale, DEFAULT_RESOURCE_SCALE).let { resourceThumbScale = it }
             getDimension(R.styleable.BalloonSeekBar_balloon_seekbar_text_size, DEFAULT_TEXT_SIZE).let { balloonTextSize = it }
             getInt(R.styleable.BalloonSeekBar_balloon_seekbar_text_color, DEFAULT_TEXT_COLOR).let { balloonTextColor = it }
+            getDrawable(R.styleable.BalloonSeekBar_balloon_seekbar_balloon)?.let { resourceBalloon = it }
+            getFloat(R.styleable.BalloonSeekBar_balloon_seekbar_balloon_scale, DEFAULT_RESOURCE_SCALE).let { resourceBalloonScale = it }
         }?.recycle()
 
         Timer().apply {
@@ -143,6 +147,7 @@ class BalloonSeekBar @JvmOverloads constructor(
     // つまみの情報
     private val thumbY by lazy { rectBackground.top + backgroundStrokeWidth / 2 }
     private val thumbBitmap by lazy { resourceThumb?.createBitmap(resourceThumbScale) }
+    private val balloonBitmap by lazy { resourceBalloon?.createBitmap(resourceBalloonScale) }
 
     private var seekBarProgress = 0f
     private val currentPercentage get() = contentSize.let { (seekBarProgress - it.leftF) / it.widthF }
@@ -161,9 +166,9 @@ class BalloonSeekBar @JvmOverloads constructor(
 
         // テキストが見きれないようにテキストの幅を考慮してサイズを設定する
         contentSize.apply {
-            this.top = paddingTop + baloonHeight.toInt()
+            this.top = paddingTop + balloonHeight.toInt()
             this.left = paddingLeft + valueTextSize
-            this.bottom = measuredHeight - paddingBottom + baloonHeight.toInt()
+            this.bottom = measuredHeight - paddingBottom + balloonHeight.toInt()
             this.right = measuredWidth - paddingRight - valueTextSize
         }
 
@@ -212,7 +217,7 @@ class BalloonSeekBar @JvmOverloads constructor(
 
     private fun measureHeight(measureSpec: Int): Int {
         var size = paddingTop + paddingBottom
-        size += height + round(backgroundStrokeWidth + baloonHeight).toInt()
+        size += height + round(backgroundStrokeWidth + balloonHeight).toInt()
         return resolveSizeAndState(size, measureSpec, 0)
     }
 
@@ -253,13 +258,24 @@ class BalloonSeekBar @JvmOverloads constructor(
         }
 
         // 吹き出しを描画
-        val baloonRect = RectF(0f, 0f, width * 2f, valueTextSizeF * 1.2f)
-        baloonRect.offset(seekBarProgress - width, thumbY - valueTextSizeF * 2)
-        canvas.drawRoundRect(baloonRect, thumbRadius, thumbRadius, paintBalloon)
+        var textHeightBias = 1f
+        if (balloonBitmap == null) {
+            val baloonRect = RectF(0f, 0f, width * 2f, valueTextSizeF * 1.2f)
+            baloonRect.offset(seekBarProgress - width, thumbY - valueTextSizeF * 2)
+            canvas.drawRoundRect(baloonRect, thumbRadius, thumbRadius, paintBalloon)
+        } else {
+            textHeightBias = 1.2f
+            val y = thumbY - valueTextSizeF * textHeightBias
+            balloonBitmap?.let { b ->
+                val src = Rect(0, 0, b.width, b.height)
+                val dest = Rect((seekBarProgress - b.width).toInt(), (y - b.height).toInt(), (seekBarProgress + b.width).toInt(), (y + b.height).toInt())
+                canvas.drawBitmap(b, src, dest, null)
+            }
+        }
 
         // テキストはつまみの位置に合わせるため `テキストの幅/2` を考慮する
         // x軸を調整しやすいようにテキストは予め paint 側で左寄せにしておく
-        canvas.drawText(text, seekBarProgress - width * bias, thumbY - valueTextSizeF, paintText)
+        canvas.drawText(text, seekBarProgress - width * bias, thumbY - valueTextSizeF * textHeightBias, paintText)
     }
 
     private fun updateProgress(x: Float) {
@@ -315,7 +331,7 @@ class BalloonSeekBar @JvmOverloads constructor(
         private const val DEFAULT_BACKGROUND_STROKE_WIDTH = 0f
         private const val DEFAULT_THUMB_RADIUS = 24f
         private const val DEFAULT_THUMB_BORDER_WIDTH = 4f
-        private const val DEFAULT_THUMB_SCALE = 1f
+        private const val DEFAULT_RESOURCE_SCALE = 1f
         private const val DEFAULT_TEXT_SIZE = 12f
         private const val DEFAULT_TEXT_COLOR = Color.WHITE
         private const val FOREGROUND_BIAS = 1.1f
